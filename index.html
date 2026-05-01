@@ -1044,13 +1044,73 @@ dz.addEventListener('drop',e=>{
   }
 });
 
-async function startImport() {
-  if (!selectedFiles.length) { showToast(currentLang==='da'?'Vælg en PDF-fil':currentLang==='en'?'Select a PDF file':'Selectează fișiere PDF'); return; }
-  const projId = document.getElementById('import-proj-select').value;
-  if (!projId || !projects[projId]) { showToast(currentLang==='da'?'Vælg et projekt':currentLang==='en'?'Select a project':'Selectează un proiect'); return; }
+async function callGeminiWithPdf(base64data, langName) {
+  const apiKey = getGeminiKey();
+  if (!apiKey) throw new Error('NO_API_KEY');
+  
+  const prompt = 'You are a construction document analyst. Extract the key requirements from this PDF. '
+    + 'Respond ONLY with valid JSON (no markdown, no code blocks, no extra text): '
+    + '{"detectedLang":"da or en or ro or other","documentTitle":"short title","requirements":[{"title":"requirement title in ' + langName + '","desc":"2-4 sentence description in ' + langName + '","tags":["tag1","tag2"]}]}. '
+    + 'Extract 5-15 requirements. Possible tags: structural, electrical, fire, insulation, drainage, ventilation, radon, plumbing, geotechnical. '
+    + 'Translate ALL text to ' + langName + '.';
 
-  document.getElementById('import-step-1').style.display='none';
-  document.getElementById('import-step-2').style.display='';
+  const body = {
+    contents: [{
+      parts: [
+        { inline_data: { mime_type: 'application/pdf', data: base64data } },
+        { text: prompt }
+      ]
+    }],
+    generationConfig: { temperature: 0.1, maxOutputTokens: 4000 }
+  };
+
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey;
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  if (!resp.ok) {
+    const errData = await resp.json().catch(()=>({error:{message:'HTTP '+resp.status}}));
+    throw new Error('Gemini HTTP ' + resp.status + ': ' + (errData.error?.message || resp.statusText));
+  }
+
+  const data = await resp.json();
+  if (data.error) throw new Error('Gemini error: ' + data.error.message);
+
+  const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  if (!rawText) throw new Error('Gemini returned empty response');
+
+  // Strip markdown code fences if present
+  const cleaned = rawText.replace(/^```[a-z]*\n?/i, '').replace(/```$/,'').trim();
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('No JSON in Gemini response');
+
+  const parsed = JSON.parse(jsonMatch[0]);
+  if (!Array.isArray(parsed.requirements)) parsed.requirements = [];
+  return parsed;
+}
+
+async function startImport() {
+  if (!selectedFiles.length) {
+    showToast(currentLang==='da'?'Vælg en PDF-fil':currentLang==='en'?'Select a PDF file':'Selectează fișiere PDF');
+    return;
+  }
+  const projId = document.getElementById('import-proj-select').value;
+  if (!projId || !projects[projId]) {
+    showToast(currentLang==='da'?'Vælg et projekt':currentLang==='en'?'Select a project':'Selectează un proiect');
+    return;
+  }
+
+  // Check API key before starting
+  if (!getGeminiKey()) {
+    openApiKeyModal(null);
+    return;
+  }
+
+  document.getElementById('import-step-1').style.display = 'none';
+  document.getElementById('import-step-2').style.display = '';
 
   const total = selectedFiles.length;
   const fill = document.getElementById('import-prog-fill');
@@ -1058,96 +1118,95 @@ async function startImport() {
   const stepTxt = document.getElementById('import-step-txt');
   const queueStatus = document.getElementById('import-queue-status');
 
-  // Build queue UI
-  const queueItems = selectedFiles.map((sf,i)=>({...sf, status:'pending', idx:i}));
-  const renderQueue = ()=>{
-    queueStatus.innerHTML = queueItems.map(item=>`
-      <div class="queue-item">
-        <div class="queue-dot ${item.status}"></div>
-        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${item.status==='done'?'var(--green)':item.status==='error'?'var(--red)':item.status==='processing'?'var(--accent)':'var(--text3)'}">${item.file.name}</span>
-        <span style="color:var(--text3);font-size:10px">${item.status==='done'?'✓':item.status==='error'?'✗':item.status==='processing'?'...':''}</span>
-      </div>`).join('');
+  const queueItems = selectedFiles.map((sf, i) => ({ ...sf, status: 'pending', idx: i }));
+
+  const renderQueue = () => {
+    queueStatus.innerHTML = queueItems.map(item => {
+      const color = item.status==='done' ? 'var(--green)' : item.status==='error' ? 'var(--red)' : item.status==='processing' ? 'var(--accent)' : 'var(--text3)';
+      const icon = item.status==='done' ? '✓' : item.status==='error' ? '✗' : item.status==='processing' ? '...' : '';
+      return '<div class="queue-item"><div class="queue-dot ' + item.status + '"></div>'
+        + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:' + color + '">' + item.file.name + '</span>'
+        + '<span style="color:var(--text3);font-size:10px">' + icon + '</span></div>';
+    }).join('');
   };
   renderQueue();
 
-  let doneCount=0, errorCount=0;
+  let doneCount = 0, errorCount = 0;
   const targetLang = currentLang;
-  const targetLangName = targetLang==='ro'?'Romanian':targetLang==='da'?'Danish':'English';
+  const targetLangName = targetLang==='ro' ? 'Romanian' : targetLang==='da' ? 'Danish' : 'English';
 
-  for (let i=0; i<queueItems.length; i++) {
+  for (let i = 0; i < queueItems.length; i++) {
     const item = queueItems[i];
     item.status = 'processing';
     renderQueue();
-    progTxt.textContent = currentLang==='da'?`Behandler ${i+1} af ${total}...`:currentLang==='en'?`Processing ${i+1} of ${total}...`:`Procesând ${i+1} din ${total}...`;
+    progTxt.textContent = currentLang==='da' ? ('Behandler ' + (i+1) + ' af ' + total + '...')
+      : currentLang==='en' ? ('Processing ' + (i+1) + ' of ' + total + '...')
+      : ('Procesând ' + (i+1) + ' din ' + total + '...');
     stepTxt.textContent = item.file.name;
-    fill.style.width = (i/total*100)+'%';
+    fill.style.width = (i / total * 100) + '%';
 
     try {
-      const apiKey = getGeminiKey();
-      if (!apiKey) throw new Error('NO_API_KEY');
       const base64 = item.dataUrl.split(',')[1];
-      const prompt = `You are a construction document analyst. Extract and translate the key requirements from this PDF document. Respond ONLY with valid JSON, no markdown, no extra text: {"detectedLang":"da|en|ro|other","documentTitle":"title","requirements":[{"title":"req title in ${targetLangName}","desc":"2-4 sentence description in ${targetLangName}","tags":["tag1","tag2"]}]}. Extract 5-15 requirements. Tags: structural, electrical, fire, insulation, drainage, ventilation, radon, plumbing. Translate everything to ${targetLangName}.`;
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          contents:[{parts:[
-            {inline_data:{mime_type:'application/pdf',data:base64}},
-            {text:prompt}
-          ]}],
-          generationConfig:{temperature:0.1,maxOutputTokens:4000}
-        })
-      });
+      const parsed = await callGeminiWithPdf(base64, targetLangName);
 
-      const data = await response.json();
-      if(data.error) throw new Error('GEMINI_ERR:' + data.error.message);
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      if(!text) throw new Error('Empty response from Gemini');
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if(!jsonMatch) throw new Error('No JSON found in response');
-      const parsed = JSON.parse(jsonMatch[0]);
-      if(!parsed.requirements) parsed.requirements = [];
-
-      const docId = 'doc_'+Date.now()+'_'+i;
+      const docId = 'doc_' + Date.now() + '_' + i;
       documents.push({
-        id: docId, projectId: projId,
-        name: parsed.documentTitle || item.file.name.replace('.pdf',''),
-        fileName: item.file.name, size: item.file.size,
-        importedAt: Date.now(), detectedLang: parsed.detectedLang||'unknown',
+        id: docId,
+        projectId: projId,
+        name: parsed.documentTitle || item.file.name.replace(/\.pdf$/i, ''),
+        fileName: item.file.name,
+        size: item.file.size,
+        importedAt: Date.now(),
+        detectedLang: parsed.detectedLang || 'unknown',
         originalDataUrl: item.dataUrl,
-        requirements: parsed.requirements||[], translatedTo: targetLang
+        requirements: parsed.requirements,
+        translatedTo: targetLang
       });
       saveStorage();
-      item.status='done'; doneCount++;
-    } catch(err) {
-      console.error(err);
-      if(err.message === 'NO_API_KEY') {
-        // Stop queue and open key modal
+      item.status = 'done';
+      doneCount++;
+    } catch (err) {
+      console.error('Import error:', err.message);
+      if (err.message === 'NO_API_KEY') {
         closeImportModal();
-        selectedFiles = queueItems.slice(i).map(qi => ({file: qi.file, dataUrl: qi.dataUrl}));
+        selectedFiles = queueItems.slice(i).map(qi => ({ file: qi.file, dataUrl: qi.dataUrl }));
         openApiKeyModal(null);
         return;
       }
-      const docId = 'doc_'+Date.now()+'_'+i;
-      documents.push({id:docId, projectId:projId, name:item.file.name.replace(/\.pdf$/i,''), fileName:item.file.name, size:item.file.size, importedAt:Date.now(), detectedLang:'unknown', originalDataUrl:item.dataUrl, requirements:[], translatedTo:targetLang, analysisError:true});
+      // Save doc with error flag
+      const docId = 'doc_' + Date.now() + '_' + i;
+      documents.push({
+        id: docId, projectId: projId,
+        name: item.file.name.replace(/\.pdf$/i, ''),
+        fileName: item.file.name, size: item.file.size,
+        importedAt: Date.now(), detectedLang: 'unknown',
+        originalDataUrl: item.dataUrl, requirements: [],
+        translatedTo: targetLang, analysisError: true,
+        errorMsg: err.message
+      });
       saveStorage();
-      item.status='error'; errorCount++;
+      item.status = 'error';
+      errorCount++;
     }
     renderQueue();
-    fill.style.width = ((i+1)/total*100)+'%';
-    await sleep(200);
+    fill.style.width = ((i + 1) / total * 100) + '%';
+    await sleep(300);
   }
 
-  fill.style.width='100%';
+  fill.style.width = '100%';
   await sleep(400);
   closeImportModal();
 
-  const msg = errorCount===0
-    ? (currentLang==='da'?`✓ ${doneCount} dokument(er) importeret!`:currentLang==='en'?`✓ ${doneCount} document(s) imported!`:`✓ ${doneCount} document(e) importate!`)
-    : (currentLang==='da'?`${doneCount} ok, ${errorCount} fejl`:currentLang==='en'?`${doneCount} ok, ${errorCount} failed`:`${doneCount} ok, ${errorCount} erori`);
+  const msg = errorCount === 0
+    ? (currentLang==='da' ? ('✓ ' + doneCount + ' dokument(er) importeret!')
+        : currentLang==='en' ? ('✓ ' + doneCount + ' document(s) imported!')
+        : ('✓ ' + doneCount + ' document(e) importate!'))
+    : (currentLang==='da' ? (doneCount + ' ok, ' + errorCount + ' fejl')
+        : currentLang==='en' ? (doneCount + ' ok, ' + errorCount + ' failed')
+        : (doneCount + ' ok, ' + errorCount + ' erori'));
   showToast(msg);
 
-  if (currentPage==='app' && currentProjectId===projId) renderSidebar();
+  if (currentPage === 'app' && currentProjectId === projId) renderSidebar();
 }
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
@@ -1312,41 +1371,29 @@ async function retryAnalysis(docId) {
 
 async function runGeminiAnalysis(doc, docId) {
   const apiKey = getGeminiKey();
-  if(!apiKey){ openApiKeyModal(docId); return; }
+  if (!apiKey) { openApiKeyModal(docId); return; }
   const targetLang = currentLang;
-  const targetLangName = targetLang==='ro'?'Romanian':targetLang==='da'?'Danish':'English';
+  const targetLangName = targetLang==='ro' ? 'Romanian' : targetLang==='da' ? 'Danish' : 'English';
   try {
     const base64 = doc.originalDataUrl.split(',')[1];
-    const prompt = `You are a construction document analyst. Extract and translate the key requirements from this PDF. Respond ONLY with valid JSON, no markdown: {"detectedLang":"da|en|ro|other","documentTitle":"title","requirements":[{"title":"req title in ${targetLangName}","desc":"2-4 sentence description in ${targetLangName}","tags":["tag1"]}]}. Extract 5-15 requirements. Translate everything to ${targetLangName}.`;
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({contents:[{parts:[
-        {inline_data:{mime_type:'application/pdf',data:base64}},
-        {text:prompt}
-      ]}],generationConfig:{temperature:0.1,maxOutputTokens:4000}})
-    });
-    const data = await response.json();
-    if(data.error) throw new Error(data.error.message);
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    if(!text) throw new Error('Empty response');
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if(!jsonMatch) throw new Error('No JSON in response');
-    const parsed = JSON.parse(jsonMatch[0]);
-    if(!parsed.requirements) parsed.requirements = [];
-    doc.requirements = parsed.requirements||[];
-    doc.detectedLang = parsed.detectedLang||'unknown';
+    const parsed = await callGeminiWithPdf(base64, targetLangName);
+    doc.requirements = parsed.requirements || [];
+    doc.detectedLang = parsed.detectedLang || 'unknown';
     doc.translatedTo = targetLang;
     doc.analysisError = false;
-    if(parsed.documentTitle) doc.name = parsed.documentTitle;
+    doc.errorMsg = '';
+    if (parsed.documentTitle) doc.name = parsed.documentTitle;
     saveStorage();
     renderSidebar();
     showPdfCat(docId);
-    showToast('✓ '+(currentLang==='en'?'Analysis complete!':'Analiză completă!'));
+    showToast('✓ ' + (currentLang==='en' ? 'Analysis complete!' : 'Analiză completă!'));
   } catch(e) {
-    console.error(e);
-    const msg = e.message.includes('API_KEY') || e.message.includes('key') ? 
-      (currentLang==='en'?'⚠ Invalid API key — check your Gemini key':'⚠ Cheie API invalidă — verifică cheia Gemini') :
-      (currentLang==='en'?'⚠ Analysis failed: '+e.message:'⚠ Analiză eșuată: '+e.message);
+    console.error('runGeminiAnalysis error:', e.message);
+    if (e.message === 'NO_API_KEY') { openApiKeyModal(docId); return; }
+    const isKeyErr = e.message.toLowerCase().includes('api_key') || e.message.toLowerCase().includes('api key') || e.message.toLowerCase().includes('invalid');
+    const msg = isKeyErr
+      ? (currentLang==='en' ? '⚠ Invalid API key — check your Gemini key' : '⚠ Cheie API invalidă — verifică cheia')
+      : ('⚠ ' + e.message.substring(0, 80));
     showToast(msg);
   }
 }
