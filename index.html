@@ -454,13 +454,13 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 <!-- API Key Modal -->
 <div class="modal-overlay" id="modal-apikey">
   <div class="modal" style="max-width:420px">
-    <div class="modal-title">🔑 Gemini API Key</div>
-    <div class="modal-sub">Necesar pentru analiza PDF cu AI. Gratuit pe <strong style="color:var(--blue)">aistudio.google.com</strong></div>
+    <div class="modal-title">🔑 Groq API Key</div>
+    <div class="modal-sub">Necesar pentru analiza PDF cu AI. 100% gratuit pe <strong style="color:var(--blue)">console.groq.com</strong></div>
     <div class="modal-label">Cheia ta Gemini API</div>
-    <input class="modal-input" id="apikey-input" type="password" placeholder="AIzaSy..." autocomplete="off">
+    <input class="modal-input" id="apikey-input" type="password" placeholder="gsk_..." autocomplete="off">
     <div style="margin-top:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;font-size:11px;color:var(--text3);line-height:1.8">
-      1. Mergi la <span style="color:var(--accent);font-family:'DM Mono',monospace">aistudio.google.com</span><br>
-      2. Apasă <strong style="color:var(--text2)">Get API Key</strong> → <strong style="color:var(--text2)">Create API Key</strong><br>
+      1. Mergi la <span style="color:var(--accent);font-family:'DM Mono',monospace">console.groq.com/keys</span><br>
+      2. Apasă <strong style="color:var(--text2)">Create API Key</strong><br>
       3. Copiază cheia și lipiește mai sus<br>
       <span style="color:var(--green)">✓ Complet gratuit · Salvată local în browser</span>
     </div>
@@ -1065,48 +1065,97 @@ dz.addEventListener('drop',e=>{
   }
 });
 
+// Convert PDF base64 to text using FileReader trick (extract text layer)
+async function extractPdfText(base64data) {
+  // We'll send the PDF as base64 and let the AI decode it via URL
+  return base64data; // pass through, Groq handles text extraction via prompt
+}
+
+
+// Extract text from PDF base64 using PDF.js
+async function extractTextFromPdfBase64(base64data) {
+  try {
+    // Load PDF.js dynamically
+    if (!window.pdfjsLib) {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    const binary = atob(base64data);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+    const pdf = await window.pdfjsLib.getDocument({ data: bytes }).promise;
+    let fullText = '';
+    for (let p = 1; p <= Math.min(pdf.numPages, 20); p++) {
+      const page = await pdf.getPage(p);
+      const tc = await page.getTextContent();
+      fullText += tc.items.map(i => i.str).join(' ') + '\n';
+    }
+    return fullText.trim() || 'No text extracted';
+  } catch(e) {
+    console.warn('PDF text extraction failed:', e.message);
+    return 'PDF text extraction failed - please ensure this is a text-based PDF';
+  }
+}
+
 async function callGeminiWithPdf(base64data, langName) {
   const apiKey = getGeminiKey();
   if (!apiKey) throw new Error('NO_API_KEY');
-  
-  const prompt = 'You are a construction document analyst. Extract the key requirements from this PDF. '
-    + 'Respond ONLY with valid JSON (no markdown, no code blocks, no extra text): '
+
+  // Convert base64 PDF to blob URL for text extraction
+  const pdfText = await extractTextFromPdfBase64(base64data);
+
+  const prompt = 'You are a construction document analyst. Here is the text content extracted from a PDF document:\n\n'
+    + pdfText.substring(0, 12000)
+    + '\n\nExtract the key requirements from this document. '
+    + 'Respond ONLY with valid JSON (no markdown, no code blocks): '
     + '{"detectedLang":"da or en or ro or other","documentTitle":"short title","requirements":[{"title":"requirement title in ' + langName + '","desc":"2-4 sentence description in ' + langName + '","tags":["tag1","tag2"]}]}. '
-    + 'Extract 5-15 requirements. Possible tags: structural, electrical, fire, insulation, drainage, ventilation, radon, plumbing, geotechnical. '
+    + 'Extract 5-15 requirements. Tags: structural, electrical, fire, insulation, drainage, ventilation, radon, plumbing. '
     + 'Translate ALL text to ' + langName + '.';
 
-  const body = {
-    contents: [{
-      parts: [
-        { inline_data: { mime_type: 'application/pdf', data: base64data } },
-        { text: prompt }
-      ]
-    }],
-    generationConfig: { temperature: 0.1, maxOutputTokens: 4000 }
-  };
-
-  const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + apiKey;
-  const resp = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-
-  if (!resp.ok) {
-    const errData = await resp.json().catch(()=>({error:{message:'HTTP '+resp.status}}));
-    throw new Error('Gemini HTTP ' + resp.status + ': ' + (errData.error?.message || resp.statusText));
+  let resp;
+  try {
+    resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.1,
+        max_tokens: 4000
+      })
+    });
+  } catch(netErr) {
+    throw new Error('Eroare rețea: ' + netErr.message);
   }
 
-  const data = await resp.json();
-  if (data.error) throw new Error('Gemini error: ' + data.error.message);
+  const data = await resp.json().catch(() => null);
 
-  const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  if (!rawText) throw new Error('Gemini returned empty response');
+  if (!resp.ok) {
+    const msg = data?.error?.message || ('HTTP ' + resp.status);
+    if (resp.status === 401) throw new Error('Cheie API invalidă — verifică cheia Groq');
+    if (resp.status === 429) throw new Error('Limită depășită — așteaptă 1 minut');
+    throw new Error('Groq ' + resp.status + ': ' + msg);
+  }
 
-  // Strip markdown code fences if present
-  const cleaned = rawText.replace(/^```[a-z]*\n?/i, '').replace(/```$/,'').trim();
+  if (!data) throw new Error('Răspuns gol de la Groq');
+
+  const rawText = data.choices?.[0]?.message?.content || '';
+  if (!rawText) throw new Error('Groq a returnat text gol');
+
+  const cleaned = rawText.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/,'').trim();
   const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error('No JSON in Gemini response');
+  if (!jsonMatch) throw new Error('Nu s-a găsit JSON în răspunsul Groq');
 
   const parsed = JSON.parse(jsonMatch[0]);
   if (!Array.isArray(parsed.requirements)) parsed.requirements = [];
@@ -1756,7 +1805,8 @@ function showToast(msg) {
   const toast=document.getElementById('toast');
   toast.textContent=msg; toast.classList.add('show');
   if(toastTimer)clearTimeout(toastTimer);
-  toastTimer=setTimeout(()=>toast.classList.remove('show'),2200);
+  const duration = (msg.startsWith('⚠') || msg.startsWith('Eroare')) ? 7000 : 2200;
+  toastTimer=setTimeout(()=>toast.classList.remove('show'), duration);
 }
 
 // close modals on overlay click - event delegation
