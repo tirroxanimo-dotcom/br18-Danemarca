@@ -273,6 +273,33 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .ctx-item:hover{background:var(--bg3);color:var(--text);}
 .ctx-item.danger:hover{background:var(--red-dim);color:var(--red);}
 
+.legis-filter{padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--bg2);color:var(--text3);cursor:pointer;font-size:11px;font-family:'DM Mono',monospace;transition:all .15s;}
+.legis-filter:hover{background:var(--bg3);color:var(--text);}
+.legis-filter.active{background:rgba(106,173,122,0.15);border-color:rgba(106,173,122,0.4);color:var(--green);}
+.legis-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;margin-bottom:14px;overflow:hidden;transition:border-color .2s;}
+.legis-card:hover{border-color:var(--border2);}
+.legis-card-header{display:flex;align-items:flex-start;gap:12px;padding:16px;cursor:pointer;}
+.legis-card-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.legis-card-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px;line-height:1.3;}
+.legis-card-subtitle{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;}
+.legis-card-tag{font-size:10px;font-family:'DM Mono',monospace;padding:2px 8px;border-radius:10px;margin-left:auto;flex-shrink:0;}
+.legis-card-body{display:none;padding:0 16px 16px 68px;border-top:1px solid var(--border);}
+.legis-card-body.open{display:block;}
+.legis-lang-tabs{display:flex;gap:6px;margin:12px 0 10px;}
+.legis-lang-tab{padding:4px 12px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--text3);cursor:pointer;font-size:11px;font-family:'DM Mono',monospace;transition:all .15s;}
+.legis-lang-tab.active{background:rgba(106,173,122,0.15);border-color:rgba(106,173,122,0.4);color:var(--green);}
+.legis-text{font-size:12px;color:var(--text2);line-height:1.8;}
+.legis-text p{margin-bottom:8px;}
+.legis-text strong{color:var(--text);}
+.legis-steps{margin:10px 0;display:flex;flex-direction:column;gap:6px;}
+.legis-step{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;background:var(--bg3);border-radius:8px;border:1px solid var(--border);}
+.legis-step-num{width:22px;height:22px;border-radius:50%;background:rgba(106,173,122,0.2);color:var(--green);font-size:11px;font-family:'DM Mono',monospace;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:600;}
+.legis-step-text{font-size:12px;color:var(--text2);line-height:1.6;}
+.legis-link{color:var(--blue);font-size:11px;font-family:'DM Mono',monospace;text-decoration:none;}
+.legis-link:hover{text-decoration:underline;}
+.legis-warning{background:var(--red-dim);border:1px solid rgba(212,100,74,0.2);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--red);margin-top:8px;}
+.legis-info{background:var(--blue-dim);border:1px solid rgba(91,155,212,0.2);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--blue);margin-top:8px;}
+.legis-ok{background:var(--green-dim);border:1px solid rgba(106,173,122,0.2);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--green);margin-top:8px;}
 ::-webkit-scrollbar{width:5px;}
 ::-webkit-scrollbar-track{background:var(--bg2);}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
@@ -292,6 +319,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
   </div>
   <div class="header-btns" id="header-btns">
     <button class="btn-header" style="border:1px solid var(--border2);background:transparent;color:var(--text3)" onclick="openApiKeyModal(null)" title="Setează Gemini API Key">🔑 API Key</button>
+    <button class="btn-header" style="border:1px solid rgba(106,173,122,0.35);background:rgba(106,173,122,0.1);color:var(--green)" onclick="showLegisPage()">⚖ Legislație RO-DK</button>
     <button class="btn-header btn-docs" onclick="showDocsPage()" id="btn-docs-hdr">📄 Documente</button>
     <button class="btn-header btn-pdf-hdr" onclick="openPdfModal()" id="btn-export-hdr" style="display:none">⬇ Export PDF</button>
     <button class="btn-header btn-home-hdr" onclick="goHome()" id="btn-home-hdr" style="display:none">⌂ Proiecte</button>
@@ -480,6 +508,36 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 </div>
 
 <div class="toast" id="toast"></div>
+
+
+<!-- LEGISLATION PAGE -->
+<div class="page" id="page-legis">
+<div style="max-width:1000px;margin:0 auto;padding:32px 24px;">
+
+  <!-- Hero -->
+  <div style="margin-bottom:32px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+      <div style="width:48px;height:48px;border-radius:12px;background:rgba(106,173,122,0.15);color:var(--green);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">⚖</div>
+      <div>
+        <div style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--text);line-height:1.1">Legislație Româno-Daneză</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:3px">Obligații și drepturi pentru firme românești care lucrează în Danemarca · Opdateret 2024</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+      <button onclick="filterLegis('all')" id="lf-all" class="legis-filter active">Toate</button>
+      <button onclick="filterLegis('inregistrare')" id="lf-inregistrare" class="legis-filter">📋 Înregistrare</button>
+      <button onclick="filterLegis('salariu')" id="lf-salariu" class="legis-filter">💰 Salariu</button>
+      <button onclick="filterLegis('securitate')" id="lf-securitate" class="legis-filter">🦺 Securitate</button>
+      <button onclick="filterLegis('documente')" id="lf-documente" class="legis-filter">📄 Documente</button>
+      <button onclick="filterLegis('taxe')" id="lf-taxe" class="legis-filter">🏦 Taxe</button>
+      <button onclick="filterLegis('drepturi')" id="lf-drepturi" class="legis-filter">👷 Drepturi</button>
+    </div>
+  </div>
+
+  <div id="legis-cards"></div>
+
+</div>
+</div>
 
 <script>
 // ════════════════════════════════════════
@@ -1840,6 +1898,456 @@ function zoomPdf(delta) {
   const label = document.getElementById('zoom-label');
   if (label) label.textContent = window._pdfZoom + '%';
 }
+
+
+// ════════════════════════════════════════
+// LEGISLATION DATA
+// ════════════════════════════════════════
+const LEGIS = [
+  {
+    id:'reg-rut',
+    cat:'inregistrare',
+    icon:'📋',
+    color:'#c9a84c',
+    colorDim:'rgba(201,168,76,0.15)',
+    title:'Înregistrare RUT — Registrul Muncii Străine',
+    subtitle:'Påkrævet inden arbejdets start · Obligatoriu înainte de începerea lucrului',
+    ro:{
+      desc:'<p>Orice firmă română care trimite muncitori în Danemarca <strong>trebuie să se înregistreze în RUT</strong> (Registret for Udenlandske Tjenesteydere) înainte ca muncitorii să înceapă lucrul. Nerespectarea atrage amenzi severe.</p><p>RUT este administrat de Erhvervsstyrelsen (Agenția Daneză pentru Afaceri).</p>',
+      steps:[
+        'Accesează <a href="https://indberet.virk.dk" target="_blank" class="legis-link">indberet.virk.dk</a>',
+        'Selectează "Anmeld udenlandsk tjenesteyder" (Înregistrează prestator de servicii străin)',
+        'Completează: denumirea firmei românești, CUI, adresa, datele de contact',
+        'Adaugă fiecare muncitor cu: Nume, CNP/număr pașaport, perioadă de lucru, adresa șantierului din DK',
+        'Confirmă înregistrarea — primești număr RUT',
+        'Actualizează RUT dacă se schimbă muncitorii sau perioada'
+      ],
+      warning:'Amenda pentru neînregistrare: până la <strong>10.000 DKK per muncitor</strong>. Beneficiarul danez poate fi și el amendat.',
+      info:'Înregistrarea se face GRATUIT online. Nu este necesară prezența fizică în Danemarca.',
+      link:'https://indberet.virk.dk'
+    },
+    da:{
+      desc:'<p>Enhver rumænsk virksomhed, der sender arbejdere til Danmark, <strong>skal registreres i RUT</strong> (Registret for Udenlandske Tjenesteydere) inden arbejdet påbegyndes. Manglende registrering medfører alvorlige bøder.</p><p>RUT administreres af Erhvervsstyrelsen.</p>',
+      steps:[
+        'Gå til <a href="https://indberet.virk.dk" target="_blank" class="legis-link">indberet.virk.dk</a>',
+        'Vælg "Anmeld udenlandsk tjenesteyder"',
+        'Udfyld: virksomhedsnavn, CVR/CUI, adresse, kontaktoplysninger',
+        'Tilføj hver arbejder med: navn, CPR/pasnummer, arbejdsperiode, byggepladsadresse i DK',
+        'Bekræft registreringen — modtag RUT-nummer',
+        'Opdater RUT ved ændring af arbejdere eller periode'
+      ],
+      warning:'Bøde for manglende registrering: op til <strong>10.000 DKK pr. arbejder</strong>.',
+      info:'Registreringen er GRATIS online. Ingen fysisk tilstedeværelse i Danmark kræves.',
+      link:'https://indberet.virk.dk'
+    }
+  },
+  {
+    id:'salariu-minim',
+    cat:'salariu',
+    icon:'💰',
+    color:'#6aad7a',
+    colorDim:'rgba(106,173,122,0.15)',
+    title:'Salariu Minim — Overenskomst (Contract Colectiv)',
+    subtitle:'Løn efter dansk overenskomst · Salariu conform normelor daneze',
+    ro:{
+      desc:'<p>În Danemarca nu există un salariu minim legal național, dar <strong>contractele colective (overenskomst)</strong> stabilesc salariile minime pe fiecare sector. Firmele române trebuie să plătească cel puțin salariul din overenskomst-ul sectorului respectiv.</p><p>În construcții, salariul minim este stabilit de <strong>BYG-overenskomsten</strong> (BAT-Kartellet și Dansk Byggeri).</p>',
+      steps:[
+        'Identificați overenskomst-ul aplicabil (construcții = BYG-overenskomst)',
+        'Salariul minim construcții 2024: <strong>~145-160 DKK/oră</strong> (verificați actualizările)',
+        'Plătiți salariul în contul bancar al muncitorului — NU cash',
+        'Emiteți fluturași de salariu (lønseddel) în daneză sau limba muncitorului',
+        'Arhivați dovezile de plată minimum 5 ani',
+        'Salariul se plătește cel puțin lunar'
+      ],
+      warning:'Plata în numerar (cash) fără evidență contabilă = evaziune fiscală. Amendă + expulzare firmă.',
+      info:'Muncitorii români au dreptul la ACELAȘI salariu ca muncitorii danezi pentru aceeași muncă (principiul egalității de tratament).',
+      link:'https://www.bat-kartellet.dk'
+    },
+    da:{
+      desc:'<p>Danmark har ingen national mindsteløn, men <strong>overenskomster</strong> fastsætter mindstelønnen pr. sektor. Rumænske virksomheder skal betale mindst overenskomstlønnen i det relevante område.</p><p>I byggebranchen er lønnen fastsat i <strong>BYG-overenskomsten</strong>.</p>',
+      steps:[
+        'Identificer den relevante overenskomst (byggeri = BYG-overenskomst)',
+        'Mindsteløn byggeri 2024: <strong>~145-160 DKK/time</strong> (tjek opdateringer)',
+        'Betal løn til arbejderens bankkonto — IKKE kontant',
+        'Udsted lønseddel på dansk eller arbejderens sprog',
+        'Arkiver lønbevis i minimum 5 år',
+        'Løn udbetales mindst månedligt'
+      ],
+      warning:'Kontant betaling uden regnskab = skatteunddragelse. Bøde + virksomhedsudvisning.',
+      info:'Rumænske arbejdere har ret til SAMME løn som danske arbejdere for samme arbejde.',
+      link:'https://www.bat-kartellet.dk'
+    }
+  },
+  {
+    id:'e101',
+    cat:'documente',
+    icon:'📄',
+    color:'#5b9bd4',
+    colorDim:'rgba(91,155,212,0.15)',
+    title:'Formularul A1/E101 — Securitate Socială',
+    subtitle:'Bevis for social sikring i hjemlandet · Dovada asigurării sociale',
+    ro:{
+      desc:'<p>Formularul <strong>A1 (anterior E101)</strong> dovedește că muncitorul plătește contribuțiile sociale în România și nu trebuie să le plătească și în Danemarca. Este <strong>obligatoriu</strong> și trebuie să fie la muncitor pe șantier.</p><p>Se eliberează de <strong>CNPP (Casa Națională de Pensii și Asigurări Sociale)</strong> din România.</p>',
+      steps:[
+        'Angajatorul român depune cerere la CNPP sau online pe <a href="https://www.cnpp.ro" target="_blank" class="legis-link">cnpp.ro</a>',
+        'Documente necesare: contract de muncă, dovada că firma e înregistrată în RO, perioadele de detașare',
+        'Procesare: 30-45 zile lucrătoare — cereți din timp!',
+        'Formularul A1 se eliberează per muncitor, per perioadă de detașare',
+        'Muncitorul poartă originalul/copia pe șantier tot timpul',
+        'Valabilitate: maximum 24 luni (cu posibilitate de prelungire)'
+      ],
+      warning:'Fără A1 valid, Danemarca poate cere plata contribuțiilor sociale daneze (ATP, AM-bidrag) — costuri enorme!',
+      info:'Detașarea poate dura maximum 24 luni fără A1 special. Pentru perioade mai lungi se solicită derogare.',
+      link:'https://www.cnpp.ro'
+    },
+    da:{
+      desc:'<p><strong>A1-formularen (tidligere E101)</strong> beviser, at arbejderen betaler sociale bidrag i Rumænien og ikke behøver at betale dem i Danmark. Den er <strong>obligatorisk</strong> og skal være hos arbejderen på byggepladsen.</p>',
+      steps:[
+        'Den rumænske arbejdsgiver ansøger hos CNPP eller online på <a href="https://www.cnpp.ro" target="_blank" class="legis-link">cnpp.ro</a>',
+        'Nødvendige dokumenter: ansættelseskontrakt, bevis for virksomhedsregistrering i RO, udstationeringsperioder',
+        'Behandlingstid: 30-45 arbejdsdage — ansøg i god tid!',
+        'A1-formularen udstedes pr. arbejder, pr. udstationeringsperiode',
+        'Arbejderen bærer originalen/kopien på byggepladsen hele tiden',
+        'Gyldighed: maksimalt 24 måneder (med mulighed for forlængelse)'
+      ],
+      warning:'Uden gyldig A1 kan Danmark kræve betaling af danske sociale bidrag (ATP, AM-bidrag) — enorme omkostninger!',
+      info:'Udstationering kan vare maksimalt 24 måneder uden særlig A1. For længere perioder kræves dispensation.',
+      link:'https://www.cnpp.ro'
+    }
+  },
+  {
+    id:'skattefri',
+    cat:'taxe',
+    icon:'🏦',
+    color:'#9b7fd4',
+    colorDim:'rgba(155,127,212,0.15)',
+    title:'Număr Fiscal Danez (CPR/SE) și Impozit',
+    subtitle:'Dansk skatte- og CPR-nummer · Număr fiscal și CPR danez',
+    ro:{
+      desc:'<p>Muncitorii detașați care lucrează în Danemarca mai mult de <strong>6 luni</strong> pot deveni obligați la plata impozitului danez. Sub 6 luni, firma română plătește impozitul în România.</p><p>Firma română trebuie să se înregistreze la <strong>Skattestyrelsen</strong> dacă are activitate permanentă în DK.</p>',
+      steps:[
+        'Sub 6 luni activitate: firma română reține și plătește impozit în România',
+        'Peste 6 luni: muncitorii se înregistrează la Skattestyrelsen (<a href="https://skat.dk" target="_blank" class="legis-link">skat.dk</a>)',
+        'Cerere număr CPR la Borgerservice (pentru ședere > 3 luni)',
+        'Completare formular "Ansøgning om skattekort" online',
+        'Cota impozit: 8% AM-bidrag + 37-55% skat (în funcție de venit)',
+        'Depunere declarație fiscală anuală (selvangivelse) în DK dacă e cazul'
+      ],
+      warning:'Dacă firma română are șantier fix în DK peste 12 luni = sediu permanent = impozit danez pe profit.',
+      info:'Convenția de evitare a dublei impuneri România-Danemarca protejează muncitorii de plata dublă.',
+      link:'https://skat.dk'
+    },
+    da:{
+      desc:'<p>Udstationerede arbejdere, der arbejder i Danmark i mere end <strong>6 måneder</strong>, kan blive skattepligtige i Danmark. Under 6 måneder betaler den rumænske virksomhed skat i Rumænien.</p>',
+      steps:[
+        'Under 6 måneder: den rumænske virksomhed tilbageholder og betaler skat i Rumænien',
+        'Over 6 måneder: arbejderne registreres hos Skattestyrelsen (<a href="https://skat.dk" target="_blank" class="legis-link">skat.dk</a>)',
+        'Ansøg om CPR-nummer hos Borgerservice (ved ophold > 3 måneder)',
+        'Udfyld "Ansøgning om skattekort" online',
+        'Skattesats: 8% AM-bidrag + 37-55% skat (afhængig af indkomst)',
+        'Indsend årlig selvangivelse i DK hvis relevant'
+      ],
+      warning:'Hvis den rumænske virksomhed har fast plads i DK over 12 måneder = fast driftssted = dansk selskabsskat.',
+      info:'Dobbeltbeskatningsaftalen mellem Rumænien og Danmark beskytter arbejderne mod dobbeltbeskatning.',
+      link:'https://skat.dk'
+    }
+  },
+  {
+    id:'securitate-munca',
+    cat:'securitate',
+    icon:'🦺',
+    color:'#d4904a',
+    colorDim:'rgba(212,144,74,0.15)',
+    title:'Securitate și Sănătate în Muncă (SSM)',
+    subtitle:'Arbejdsmiljø og sikkerhed · Securitate la locul de muncă',
+    ro:{
+      desc:'<p>Regulile daneze de securitate în muncă se aplică <strong>tuturor muncitorilor de pe șantier</strong>, indiferent de naționalitate. Firma română răspunde solidar cu beneficiarul danez pentru respectarea normelor.</p><p>Autoritatea competentă: <strong>Arbejdstilsynet (AT)</strong> — Inspectoratul Muncii Danez.</p>',
+      steps:[
+        'Toți muncitorii trebuie să aibă EPI (echipament de protecție): cască, bocanci, vestă reflectorizantă',
+        'Obligatoriu: plan SSM (APV - Arbejdspladsvurdering) pentru șantier',
+        'Muncitorii trebuie instruiți în limba lor — nu e suficient în daneză',
+        'Înregistrare accidente de muncă la AT în 9 zile',
+        'Spații sanitare decente: toaletă, apă, loc de odihnă',
+        'Program maxim: 48 ore/săptămână (directiva europeană)'
+      ],
+      warning:'Arbejdstilsynet poate opri șantierul imediat ("strakspåbud") pentru încălcări grave. Amendă: 10.000-100.000 DKK.',
+      info:'Muncitorii au dreptul să refuze munca periculoasă fără consecințe. Firma NU poate concedia pentru asta.',
+      link:'https://at.dk'
+    },
+    da:{
+      desc:'<p>Danske arbejdsmiljøregler gælder for <strong>alle arbejdere på byggepladsen</strong>, uanset nationalitet. Den rumænske virksomhed er solidarisk ansvarlig med den danske bygherre.</p><p>Kompetent myndighed: <strong>Arbejdstilsynet (AT)</strong>.</p>',
+      steps:[
+        'Alle arbejdere skal have PPE: hjelm, sikkerhedssko, refleksvest',
+        'Obligatorisk: APV (Arbejdspladsvurdering) for byggepladsen',
+        'Arbejderne skal instrueres på deres eget sprog — dansk er ikke tilstrækkeligt',
+        'Registrer arbejdsulykker hos AT inden for 9 dage',
+        'Anstændige sanitære faciliteter: toilet, vand, hvilerum',
+        'Maksimal arbejdstid: 48 timer/uge (EU-direktiv)'
+      ],
+      warning:'Arbejdstilsynet kan stoppe byggepladsen øjeblikkeligt ("strakspåbud") ved alvorlige overtrædelser. Bøde: 10.000-100.000 DKK.',
+      info:'Arbejdere har ret til at nægte farligt arbejde uden konsekvenser.',
+      link:'https://at.dk'
+    }
+  },
+  {
+    id:'detasare',
+    cat:'documente',
+    icon:'✈',
+    color:'#5bbdb4',
+    colorDim:'rgba(91,189,180,0.15)',
+    title:'Contract de Detașare și Documente Obligatorii',
+    subtitle:'Udstationeringskontrakt og obligatoriske dokumenter',
+    ro:{
+      desc:'<p>Fiecare muncitor trimis în Danemarca trebuie să aibă un <strong>act adițional la contractul de muncă</strong> care să specifice condițiile detașării. Acesta trebuie să respecte Directiva UE 96/71/CE privind detașarea lucrătorilor.</p>',
+      steps:[
+        'Act adițional la contractul de muncă cu: locul de muncă în DK, durata, salariul în DKK, condițiile de cazare',
+        'Formularul A1 (vezi secțiunea A1/E101)',
+        'Pașaport/carte de identitate valabilă',
+        'Dovada înregistrării în RUT',
+        'Polița de asigurare medicală (dacă nu are EHIC)',
+        'Cardul european de sănătate EHIC (eliberat gratuit de CNAS România)'
+      ],
+      warning:'Documentele trebuie să fie disponibile pe șantier pentru control. Lipsa documentelor = amendă imediată.',
+      info:'EHIC se obține gratuit la Casa de Asigurări de Sănătate din județul de domiciliu al muncitorului.',
+      link:'https://www.cnas.ro'
+    },
+    da:{
+      desc:'<p>Hver arbejder sendt til Danmark skal have en <strong>tillægsaftale til ansættelseskontrakten</strong>, der specificerer udstationeringsbetingelserne i henhold til EU-direktiv 96/71/EF.</p>',
+      steps:[
+        'Tillægsaftale med: arbejdssted i DK, varighed, løn i DKK, indkvarteringsforhold',
+        'A1-formular (se A1/E101-afsnittet)',
+        'Gyldigt pas/ID-kort',
+        'Bevis for RUT-registrering',
+        'Sygeforsikring (hvis ikke EHIC)',
+        'Europæisk sygesikringskort EHIC (udstedt gratis af CNAS Rumænien)'
+      ],
+      warning:'Dokumenter skal være tilgængelige på byggepladsen til kontrol. Manglende dokumenter = øjeblikkelig bøde.',
+      info:'EHIC fås gratis hos sygekassen i arbejderens hjemkommune i Rumænien.',
+      link:'https://www.cnas.ro'
+    }
+  },
+  {
+    id:'cazare',
+    cat:'drepturi',
+    icon:'🏠',
+    color:'#d4644a',
+    colorDim:'rgba(212,100,74,0.15)',
+    title:'Cazare și Condiții de Trai',
+    subtitle:'Indkvartering og levevilkår · Cazare decentă obligatorie',
+    ro:{
+      desc:'<p>Dacă firma română asigură cazarea muncitorilor, aceasta trebuie să respecte standardele minime daneze. Cazarea indecent de proastă poate fi considerată <strong>muncă forțată sau exploatare</strong> și atrage sancțiuni penale.</p>',
+      steps:[
+        'Suprafață minimă: 7-10 m² per persoană',
+        'Acces la baie, bucătărie, apă caldă',
+        'Încălzire funcțională pe perioada rece',
+        'Muncitorul NU poate fi obligat să stea în cazarea firmei',
+        'Deducerea chiriei din salariu: MAXIM 15% din salariu brut',
+        'Contractul de chirie separat de contractul de muncă'
+      ],
+      warning:'Cazare sub standard + deducere din salariu excesivă = exploatare a forței de muncă. Pedeapsă penală în DK.',
+      info:'Sindicatele daneze (3F, BAT) inspectează condițiile de cazare. Muncitorii pot sesiza anonim.',
+      link:'https://www.3f.dk'
+    },
+    da:{
+      desc:'<p>Hvis den rumænske virksomhed sørger for arbejdernes indkvartering, skal den overholde danske minimumsstandarder. Dårlig indkvartering kan betragtes som <strong>tvangsarbejde eller udnyttelse</strong>.</p>',
+      steps:[
+        'Minimumsareal: 7-10 m² pr. person',
+        'Adgang til bad, køkken, varmt vand',
+        'Fungerende varme i den kolde periode',
+        'Arbejderen kan IKKE tvinges til at bo i virksomhedens indkvartering',
+        'Huslejefradrag i løn: MAKSIMALT 15% af bruttolønnen',
+        'Lejekontrakt adskilt fra ansættelseskontrakten'
+      ],
+      warning:'Understandard-indkvartering + overdrevent løntræk = arbejdskraftudnyttelse. Strafansvar i DK.',
+      info:'Danske fagforeninger (3F, BAT) inspekterer indkvarteringsforhold. Arbejdere kan anmelde anonymt.',
+      link:'https://www.3f.dk'
+    }
+  },
+  {
+    id:'concediu',
+    cat:'drepturi',
+    icon:'🏖',
+    color:'#6aad7a',
+    colorDim:'rgba(106,173,122,0.15)',
+    title:'Concediu și Zile Libere (Feriepenge)',
+    subtitle:'Ferie og fridage · Concediu plătit în Danemarca',
+    ro:{
+      desc:'<p>Muncitorii detașați au dreptul la <strong>concediu plătit conform legislației daneze</strong> — 25 zile lucrătoare pe an (5 săptămâni). Angajatorul plătește "feriepenge" (bani de concediu) de 12,5% din salariu.</p>',
+      steps:[
+        'Drept la 25 zile lucrătoare concediu/an (proporțional cu perioada lucrată)',
+        'Feriepenge = 12,5% din salariul brut (include indemnizația de concediu)',
+        'Angajatorul virează feriepenge în contul "Feriekonto" sau direct',
+        'Muncitorul solicită feriepenge la <a href="https://www.feriekonto.dk" target="_blank" class="legis-link">feriekonto.dk</a>',
+        'Sărbători legale daneze: 11 zile/an — plătite normal',
+        'Concediu medical: plătit de angajator primele 30 zile'
+      ],
+      warning:'Neplata feriepenge = amendă + obligația de plată retroactivă cu dobânzi.',
+      info:'Muncitorii pot accesa feriepenge-ul acumulat chiar dacă se întorc în România.',
+      link:'https://www.feriekonto.dk'
+    },
+    da:{
+      desc:'<p>Udstationerede arbejdere har ret til <strong>betalt ferie efter dansk lovgivning</strong> — 25 arbejdsdage pr. år (5 uger). Arbejdsgiveren betaler "feriepenge" på 12,5% af lønnen.</p>',
+      steps:[
+        'Ret til 25 arbejdsdages ferie/år (forholdsmæssigt beregnet)',
+        'Feriepenge = 12,5% af bruttolønnen',
+        'Arbejdsgiver indbetaler feriepenge til Feriekonto eller direkte',
+        'Arbejderen ansøger om feriepenge på <a href="https://www.feriekonto.dk" target="_blank" class="legis-link">feriekonto.dk</a>',
+        'Danske helligdage: 11 dage/år — betales normalt',
+        'Sygeorlov: betalt af arbejdsgiver de første 30 dage'
+      ],
+      warning:'Manglende feriepenge-betaling = bøde + tilbagebetalingspligt med renter.',
+      info:'Arbejdere kan tilgå optjente feriepenge selv efter hjemkomst til Rumænien.',
+      link:'https://www.feriekonto.dk'
+    }
+  },
+  {
+    id:'sindicate',
+    cat:'drepturi',
+    icon:'👷',
+    color:'#c9a84c',
+    colorDim:'rgba(201,168,76,0.15)',
+    title:'Sindicate și Protecție — 3F și BAT-Kartellet',
+    subtitle:'Fagforeninger og beskyttelse · Sindicate daneze',
+    ro:{
+      desc:'<p>Muncitorii români din Danemarca pot contacta <strong>sindicatele daneze</strong> (3F, BAT) dacă angajatorul nu respectă drepturile lor. Sindicatele oferă consiliere gratuită și pot interveni în negocierea cu angajatorul.</p>',
+      steps:[
+        '3F (Fagligt Fælles Forbund) — cel mai mare sindicat DK: <a href="https://www.3f.dk" target="_blank" class="legis-link">3f.dk</a>',
+        'BAT-Kartellet — sindicate construcții: <a href="https://www.bat-kartellet.dk" target="_blank" class="legis-link">bat-kartellet.dk</a>',
+        'Telefon consiliere în mai multe limbi (inclusiv română în unele cazuri)',
+        'Muncitorii pot deveni membri ai sindicatului danez (cotizație lunară)',
+        'Sindicatul poate negocia cu angajatorul pentru plata restanțelor',
+        'Sesizare anonimă posibilă — fără risc de represalii'
+      ],
+      warning:'Concedierea unui muncitor pentru că s-a adresat sindicatului = ilegală în Danemarca. Muncitorul are drept la despăgubiri.',
+      info:'Sindicatele daneze au acord cu sindicatele din România (FNPR) pentru protecția muncitorilor detașați.',
+      link:'https://www.3f.dk'
+    },
+    da:{
+      desc:'<p>Rumænske arbejdere i Danmark kan kontakte <strong>danske fagforeninger</strong> (3F, BAT), hvis arbejdsgiveren ikke respekterer deres rettigheder. Fagforeningerne tilbyder gratis rådgivning.</p>',
+      steps:[
+        '3F (Fagligt Fælles Forbund) — Danmarks største fagforening: <a href="https://www.3f.dk" target="_blank" class="legis-link">3f.dk</a>',
+        'BAT-Kartellet — byggebranchens fagforeninger: <a href="https://www.bat-kartellet.dk" target="_blank" class="legis-link">bat-kartellet.dk</a>',
+        'Telefonrådgivning på flere sprog',
+        'Arbejdere kan blive medlemmer af dansk fagforening',
+        'Fagforeningen kan forhandle med arbejdsgiver om restancer',
+        'Anonym anmeldelse mulig — ingen risiko for repressalier'
+      ],
+      warning:'Fyring af en arbejder for at have kontaktet fagforeningen = ulovligt i Danmark.',
+      info:'Danske fagforeninger har aftale med rumænske fagforeninger (FNPR) om beskyttelse af udstationerede arbejdere.',
+      link:'https://www.3f.dk'
+    }
+  },
+  {
+    id:'gdpr',
+    cat:'documente',
+    icon:'🔒',
+    color:'#5b9bd4',
+    colorDim:'rgba(91,155,212,0.15)',
+    title:'GDPR și Protecția Datelor Muncitorilor',
+    subtitle:'Databeskyttelse og GDPR · Protecția datelor personale',
+    ro:{
+      desc:'<p>Firma română care procesează date personale ale muncitorilor în contextul activității din Danemarca trebuie să respecte <strong>GDPR</strong> atât în România cât și în Danemarca.</p>',
+      steps:[
+        'Informați muncitorii despre datele colectate (CNP, pașaport, salariu)',
+        'Nu transmiteți date personale fără consimțământ explicit',
+        'Datele RUT sunt publice — acceptați asta înainte de înregistrare',
+        'Păstrați datele muncitorilor maximum 5 ani după încetarea contractului',
+        'Muncitorul are dreptul să ceară ștergerea datelor după terminarea colaborării',
+        'Notificați ANSPDCP (RO) și Datatilsynet (DK) în caz de breach de date'
+      ],
+      warning:'Amenda GDPR: până la 20 milioane EUR sau 4% din cifra de afaceri globală.',
+      info:'RUT-ul danez face publice unele date ale firmei — acest lucru este legal și nu încalcă GDPR.',
+      link:'https://www.datatilsynet.dk'
+    },
+    da:{
+      desc:'<p>Den rumænske virksomhed, der behandler arbejdernes personoplysninger i forbindelse med aktiviteter i Danmark, skal overholde <strong>GDPR</strong> i både Rumænien og Danmark.</p>',
+      steps:[
+        'Informer arbejderne om indsamlede data (CPR, pas, løn)',
+        'Videregiv ikke personoplysninger uden eksplicit samtykke',
+        'RUT-data er offentlige — accepter dette inden registrering',
+        'Opbevar arbejderdata maksimalt 5 år efter kontraktophør',
+        'Arbejderen har ret til datasletning efter samarbejdsophør',
+        'Anmeld databrud til ANSPDCP (RO) og Datatilsynet (DK)'
+      ],
+      warning:'GDPR-bøde: op til 20 millioner EUR eller 4% af den globale omsætning.',
+      info:'Det danske RUT gør visse virksomhedsdata offentlige — dette er lovligt og krænker ikke GDPR.',
+      link:'https://www.datatilsynet.dk'
+    }
+  }
+];
+
+let _legisFilter = 'all';
+let _legisLang = {};
+
+function showLegisPage() {
+  showPage('legis');
+  document.getElementById('h-project').textContent = 'Legislație RO-DK';
+  document.getElementById('btn-home-hdr').style.display = '';
+  document.getElementById('btn-export-hdr').style.display = 'none';
+  document.getElementById('global-progress').style.display = 'none';
+  renderLegisCards();
+}
+
+function filterLegis(cat) {
+  _legisFilter = cat;
+  document.querySelectorAll('.legis-filter').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('lf-' + cat);
+  if (btn) btn.classList.add('active');
+  renderLegisCards();
+}
+
+function renderLegisCards() {
+  const container = document.getElementById('legis-cards');
+  if (!container) return;
+  const items = _legisFilter === 'all' ? LEGIS : LEGIS.filter(l => l.cat === _legisFilter);
+  container.innerHTML = items.map(item => {
+    const lang = _legisLang[item.id] || 'ro';
+    const d = item[lang];
+    return `<div class="legis-card" id="lcard-${item.id}">
+      <div class="legis-card-header" onclick="toggleLegisCard('${item.id}')">
+        <div class="legis-card-icon" style="background:${item.colorDim};color:${item.color}">${item.icon}</div>
+        <div style="flex:1">
+          <div class="legis-card-title">${item.title}</div>
+          <div class="legis-card-subtitle">${item.subtitle}</div>
+        </div>
+        <span class="legis-card-tag" style="background:${item.colorDim};color:${item.color}">${item.cat}</span>
+        <span style="color:var(--text3);font-size:10px;margin-left:8px" id="lexp-${item.id}">▼</span>
+      </div>
+      <div class="legis-card-body" id="lbody-${item.id}">
+        <div class="legis-lang-tabs">
+          <button class="legis-lang-tab ${lang==='ro'?'active':''}" onclick="setLegisLang('${item.id}','ro');event.stopPropagation()">🇷🇴 Română</button>
+          <button class="legis-lang-tab ${lang==='da'?'active':''}" onclick="setLegisLang('${item.id}','da');event.stopPropagation()">🇩🇰 Dansk</button>
+        </div>
+        <div class="legis-text">${d.desc}</div>
+        <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);margin:10px 0 6px;text-transform:uppercase;letter-spacing:1px">Cum se obține / Hvordan opnås det</div>
+        <div class="legis-steps">${d.steps.map((s,i)=>`<div class="legis-step"><div class="legis-step-num">${i+1}</div><div class="legis-step-text">${s}</div></div>`).join('')}</div>
+        ${d.warning ? `<div class="legis-warning">⚠️ ${d.warning}</div>` : ''}
+        ${d.info ? `<div class="legis-info">ℹ️ ${d.info}</div>` : ''}
+        ${d.link ? `<div style="margin-top:10px"><a href="${d.link}" target="_blank" class="legis-link">🔗 ${d.link}</a></div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleLegisCard(id) {
+  const body = document.getElementById('lbody-' + id);
+  const exp = document.getElementById('lexp-' + id);
+  if (!body) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if (exp) exp.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
+function setLegisLang(id, lang) {
+  _legisLang[id] = lang;
+  renderLegisCards();
+  // re-open the card
+  const body = document.getElementById('lbody-' + id);
+  if (body) body.classList.add('open');
+  const exp = document.getElementById('lexp-' + id);
+  if (exp) exp.style.transform = 'rotate(180deg)';
+}
+
 
 // ════════════════════════════════════════
 // TOAST
