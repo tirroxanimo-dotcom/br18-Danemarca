@@ -1360,6 +1360,32 @@ function saveGeminiKey(k) {
   localStorage.setItem('br18_gemini_key', k.trim());
 }
 
+let _apiKeyPendingDocId = null;
+function openApiKeyModal(pendingDocId) {
+  _apiKeyPendingDocId = pendingDocId;
+  document.getElementById('apikey-input').value = getGeminiKey();
+  document.getElementById('modal-apikey').classList.add('open');
+  setTimeout(() => document.getElementById('apikey-input').focus(), 100);
+}
+function closeApiKeyModal() {
+  document.getElementById('modal-apikey').classList.remove('open');
+}
+function confirmApiKey() {
+  const k = document.getElementById('apikey-input').value.trim();
+  if (!k) { showToast('⚠ Introdu cheia API'); return; }
+  saveGeminiKey(k);
+  closeApiKeyModal();
+  // update button color
+  const btn = document.querySelector('[onclick="openApiKeyModal(null)"]');
+  if (btn) btn.style.color = 'var(--green)';
+  showToast('✓ Cheie salvată!');
+  if (_apiKeyPendingDocId) {
+    retryAnalysis(_apiKeyPendingDocId);
+  } else if (selectedFiles.length) {
+    openImportModal(currentProjectId);
+  }
+}
+
 async function retryAnalysis(docId) {
   const doc = documents.find(d=>d.id===docId);
   if(!doc) return;
@@ -1693,26 +1719,6 @@ function generatePDF() {
       });
     });
     html+=`</div><div class="footer">BR18 · ${projName} · ${dateStr}</div>
-<!-- API Key Modal -->
-<div class="modal-overlay" id="modal-apikey">
-  <div class="modal" style="max-width:420px">
-    <div class="modal-title">🔑 Gemini API Key</div>
-    <div class="modal-sub">Necesar pentru analiza și traducerea documentelor PDF cu AI. Gratuit pe <strong style="color:var(--blue)">aistudio.google.com</strong></div>
-    <div class="modal-label">Cheia ta Gemini API</div>
-    <input class="modal-input" id="apikey-input" type="password" placeholder="AIza..." autocomplete="off">
-    <div style="margin-top:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;font-size:11px;color:var(--text3);line-height:1.7">
-      1. Mergi la <span style="color:var(--accent);font-family:'DM Mono',monospace">aistudio.google.com</span><br>
-      2. Apasă <strong style="color:var(--text2)">Get API Key</strong> → <strong style="color:var(--text2)">Create API Key</strong><br>
-      3. Copiază cheia și lipiește mai sus<br>
-      <span style="color:var(--green)">✓ Complet gratuit · Cheia se salvează local în browser</span>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeApiKeyModal()">Anulează</button>
-      <button class="btn-ok" onclick="confirmApiKey()">Salvează și continuă</button>
-    </div>
-  </div>
-</div>
-
 </body></html>`;
     const win=window.open('','_blank');
     if(win){win.document.write(html);win.document.close();win.onload=()=>setTimeout(()=>win.print(),300);}
