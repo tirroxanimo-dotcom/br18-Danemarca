@@ -1432,10 +1432,16 @@ function renderPdfCatPage(docId) {
 }
 
 function getGeminiKey() {
-  return localStorage.getItem('br18_gemini_key') || '';
+  // Try multiple storage locations for redundancy
+  return localStorage.getItem('br18_gemini_key') 
+      || sessionStorage.getItem('br18_gemini_key') 
+      || '';
 }
 function saveGeminiKey(k) {
-  localStorage.setItem('br18_gemini_key', k.trim());
+  const clean = k.trim();
+  // Save in both localStorage AND sessionStorage
+  try { localStorage.setItem('br18_gemini_key', clean); } catch(e) {}
+  try { sessionStorage.setItem('br18_gemini_key', clean); } catch(e) {}
 }
 
 let _apiKeyPendingDocId = null;
