@@ -1143,7 +1143,7 @@ async function callGeminiWithPdf(base64data, langName) {
 
   if (!resp.ok) {
     const msg = data?.error?.message || ('HTTP ' + resp.status);
-    if (resp.status === 401) throw new Error('Cheie API invalidă — verifică cheia Groq');
+    if (resp.status === 401) throw new Error('Cheie invalidă (401) — cheia salvată: ' + apiKey.substring(0,12) + '...' + ' lungime:' + apiKey.length);
     if (resp.status === 429) throw new Error('Limită depășită — așteaptă 1 minut');
     throw new Error('Groq ' + resp.status + ': ' + msg);
   }
@@ -1441,14 +1441,16 @@ function closeApiKeyModal() {
   document.getElementById('modal-apikey').classList.remove('open');
 }
 function confirmApiKey() {
-  const k = document.getElementById('apikey-input').value.trim();
+  // Clean key - remove all whitespace, newlines, invisible chars
+  const raw = document.getElementById('apikey-input').value;
+  const k = raw.replace(/[\s\r\n\t]/g, '');
   if (!k) { showToast('⚠ Introdu cheia API'); return; }
+  if (k.length < 20) { showToast('⚠ Cheia e prea scurtă — copiaz-o toată'); return; }
   saveGeminiKey(k);
   closeApiKeyModal();
-  // update button color
   const btn = document.querySelector('[onclick="openApiKeyModal(null)"]');
-  if (btn) btn.style.color = 'var(--green)';
-  showToast('✓ Cheie salvată!');
+  if (btn) { btn.style.color = 'var(--green)'; btn.textContent = '🔑 ' + k.substring(0,8) + '...'; }
+  showToast('✓ Cheie salvată: ' + k.substring(0,12) + '...');
   if (_apiKeyPendingDocId) {
     retryAnalysis(_apiKeyPendingDocId);
   } else if (selectedFiles.length) {
