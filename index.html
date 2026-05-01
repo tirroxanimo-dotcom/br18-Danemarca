@@ -450,6 +450,27 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
   <div class="ctx-item danger" onclick="ctxDeleteProject()">✕ Șterge proiect</div>
 </div>
 
+
+<!-- API Key Modal -->
+<div class="modal-overlay" id="modal-apikey">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">🔑 Gemini API Key</div>
+    <div class="modal-sub">Necesar pentru analiza PDF cu AI. Gratuit pe <strong style="color:var(--blue)">aistudio.google.com</strong></div>
+    <div class="modal-label">Cheia ta Gemini API</div>
+    <input class="modal-input" id="apikey-input" type="password" placeholder="AIzaSy..." autocomplete="off">
+    <div style="margin-top:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;font-size:11px;color:var(--text3);line-height:1.8">
+      1. Mergi la <span style="color:var(--accent);font-family:'DM Mono',monospace">aistudio.google.com</span><br>
+      2. Apasă <strong style="color:var(--text2)">Get API Key</strong> → <strong style="color:var(--text2)">Create API Key</strong><br>
+      3. Copiază cheia și lipiește mai sus<br>
+      <span style="color:var(--green)">✓ Complet gratuit · Salvată local în browser</span>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeApiKeyModal()">Anulează</button>
+      <button class="btn-ok" onclick="confirmApiKey()">Salvează și continuă</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1738,18 +1759,12 @@ function showToast(msg) {
   toastTimer=setTimeout(()=>toast.classList.remove('show'),2200);
 }
 
-// close modals on overlay click
-document.querySelectorAll('.modal').forEach(modal=>{
-  modal.addEventListener('mousedown',e=>e.stopPropagation());
-});
-
-document.querySelectorAll('.modal-overlay').forEach(overlay=>{
-  overlay.addEventListener('mousedown',e=>{
-    if(e.target===overlay){
-      overlay.classList.remove('open');
-      if(overlay.id==='modal-import'){selectedFiles=[];}
-    }
-  });
+// close modals on overlay click - event delegation
+document.addEventListener('mousedown', e => {
+  if (e.target.classList.contains('modal-overlay') && e.target.classList.contains('open')) {
+    e.target.classList.remove('open');
+    if (e.target.id === 'modal-import') { selectedFiles = []; }
+  }
 });
 
 // ════════════════════════════════════════
@@ -1768,26 +1783,5 @@ document.getElementById('btn-docs-hdr').textContent = t('docsBtn');
 renderDashboard();
 showPage('dashboard');
 </script>
-
-<!-- API Key Modal -->
-<div class="modal-overlay" id="modal-apikey">
-  <div class="modal" style="max-width:420px">
-    <div class="modal-title">🔑 Gemini API Key</div>
-    <div class="modal-sub">Necesar pentru analiza și traducerea documentelor PDF cu AI. Gratuit pe <strong style="color:var(--blue)">aistudio.google.com</strong></div>
-    <div class="modal-label">Cheia ta Gemini API</div>
-    <input class="modal-input" id="apikey-input" type="password" placeholder="AIza..." autocomplete="off">
-    <div style="margin-top:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;font-size:11px;color:var(--text3);line-height:1.7">
-      1. Mergi la <span style="color:var(--accent);font-family:'DM Mono',monospace">aistudio.google.com</span><br>
-      2. Apasă <strong style="color:var(--text2)">Get API Key</strong> → <strong style="color:var(--text2)">Create API Key</strong><br>
-      3. Copiază cheia și lipiește mai sus<br>
-      <span style="color:var(--green)">✓ Complet gratuit · Cheia se salvează local în browser</span>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeApiKeyModal()">Anulează</button>
-      <button class="btn-ok" onclick="confirmApiKey()">Salvează și continuă</button>
-    </div>
-  </div>
-</div>
-
 </body>
 </html>
