@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ro">
 <head>
@@ -1108,15 +1107,19 @@ Extract 5-15 key requirements. Tags should be short technical categories like "s
             {inline_data:{mime_type:'application/pdf',data:base64}},
             {text:prompt}
           ]}],
-          generationConfig:{temperature:0.1,maxOutputTokens:2000}
+          generationConfig:{temperature:0.1,maxOutputTokens:4000}
         })
       });
 
       const data = await response.json();
       if(data.error) throw new Error(data.error.message);
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      const clean = text.replace(/```json|```/g,'').trim();
-      const parsed = JSON.parse(clean);
+      if(!text) throw new Error('Empty response from Gemini');
+      // Extract JSON even if surrounded by extra text
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if(!jsonMatch) throw new Error('No JSON found in response');
+      const parsed = JSON.parse(jsonMatch[0]);
+      if(!parsed.requirements) parsed.requirements = [];
 
       const docId = 'doc_'+Date.now()+'_'+i;
       documents.push({
@@ -1310,12 +1313,16 @@ async function retryAnalysis(docId) {
       body:JSON.stringify({contents:[{parts:[
         {inline_data:{mime_type:'application/pdf',data:base64}},
         {text:`Extract key requirements from this document. Respond ONLY with JSON: {"detectedLang":"da|en|ro|other","documentTitle":"title","requirements":[{"title":"req title in ${targetLangName}","desc":"2-4 sentence description in ${targetLangName}","tags":["tag1"]}]}. Extract 5-15 requirements.`}
-      ]}],generationConfig:{temperature:0.1,maxOutputTokens:2000}})
+      ]}],generationConfig:{temperature:0.1,maxOutputTokens:4000}})
     });
     const data = await response.json();
     if(data.error) throw new Error(data.error.message);
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    const parsed = JSON.parse(text.replace(/```json|```/g,'').trim());
+    if(!text) throw new Error('Empty response');
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if(!jsonMatch) throw new Error('No JSON in response');
+    const parsed = JSON.parse(jsonMatch[0]);
+    if(!parsed.requirements) parsed.requirements = [];
     doc.requirements = parsed.requirements||[];
     doc.detectedLang = parsed.detectedLang||'unknown';
     doc.translatedTo = targetLang;
