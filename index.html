@@ -210,10 +210,10 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .viewer-lang-switch{display:flex;gap:4px;}
 .viewer-lang-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;font-size:11px;font-family:'DM Mono',monospace;transition:all .15s;}
 .viewer-lang-btn.active{background:var(--blue-dim);border-color:rgba(91,155,212,0.35);color:var(--blue);}
-.viewer-body{display:grid;grid-template-columns:3fr 2fr;flex:1;overflow:hidden;}
+.viewer-body{display:grid;grid-template-columns:1fr 1fr;flex:1;overflow:hidden;}
 .viewer-col{overflow-y:auto;padding:16px;}
-.viewer-col:first-child{border-right:1px solid var(--border);}
-.viewer-col-label{font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.viewer-col:first-child{border-right:1px solid var(--border);padding:0;}
+.viewer-col-label{font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:0;padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--bg2);}
 .viewer-col-label span{background:var(--bg3);padding:2px 8px;border-radius:6px;}
 .viewer-pdf-embed{width:100%;height:100%;border:none;background:var(--bg3);}
 .viewer-translated{font-size:13px;color:var(--text);line-height:1.8;}
@@ -349,17 +349,17 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
       </div>
     </div>
     <div class="viewer-body" id="viewer-body">
-      <div class="viewer-col" id="viewer-col-orig" style="padding:0;display:flex;flex-direction:column;">
-        <div class="viewer-col-label" style="padding:10px 16px;margin-bottom:0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0">
+      <div class="viewer-col" id="viewer-col-orig">
+        <div class="viewer-col-label">
           <span id="viewer-orig-label">📄 Document Original</span>
           <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
-            <button onclick="zoomPdf(-10)" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text2);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">−</button>
-            <span id="zoom-label" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);min-width:40px;text-align:center">100%</span>
-            <button onclick="zoomPdf(10)" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text2);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">+</button>
-            <button onclick="zoomPdf(0)" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text2);padding:0 8px;height:28px;border-radius:6px;cursor:pointer;font-size:11px;font-family:'DM Mono',monospace">fit</button>
+            <button onclick="zoomPdf(-25)" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text2);width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:15px;line-height:1">−</button>
+            <span id="zoom-label" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);min-width:38px;text-align:center">100%</span>
+            <button onclick="zoomPdf(25)" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text2);width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:15px;line-height:1">+</button>
+            <button onclick="zoomPdf(0)" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text3);padding:0 8px;height:26px;border-radius:6px;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace">fit</button>
           </div>
         </div>
-        <div id="viewer-pdf-container" style="flex:1;overflow:auto;position:relative;"></div>
+        <div id="viewer-pdf-container"></div>
       </div>
       <div class="viewer-col" id="viewer-col-trans">
         <div class="viewer-col-label"><span id="viewer-trans-label">🌐 Traducere</span></div>
@@ -1610,7 +1610,11 @@ function openViewer(docId) {
   const pdfContainer = document.getElementById('viewer-pdf-container');
   window._pdfZoom = 100;
   window._pdfDataUrl = doc.originalDataUrl;
-  pdfContainer.innerHTML = '<iframe id="pdf-iframe" src="' + doc.originalDataUrl + '" style="width:100%;height:100%;border:none;transform-origin:top left;transition:transform .15s;" title="' + doc.name + '"></iframe>';
+  pdfContainer.style.overflow = 'auto';
+  pdfContainer.style.height = 'calc(100vh - 120px)';
+  pdfContainer.innerHTML = '<div id="pdf-zoom-wrap" style="width:100%;transform-origin:top left;transition:transform .2s;">'
+    + '<iframe id="pdf-iframe" src="' + doc.originalDataUrl + '" style="width:100%;height:calc(100vh - 120px);border:none;display:block;" title="' + doc.name + '"></iframe>'
+    + '</div>';
 
   // render translation side
   renderViewerTranslation(doc);
@@ -1814,20 +1818,19 @@ function generatePDF() {
 // PDF ZOOM
 // ════════════════════════════════════════
 function zoomPdf(delta) {
-  const iframe = document.getElementById('pdf-iframe');
-  if (!iframe) return;
+  const wrap = document.getElementById('pdf-zoom-wrap');
   const container = document.getElementById('viewer-pdf-container');
+  if (!wrap) return;
   if (delta === 0) {
-    // fit to container
     window._pdfZoom = 100;
   } else {
-    window._pdfZoom = Math.min(300, Math.max(30, (window._pdfZoom || 100) + delta));
+    window._pdfZoom = Math.min(300, Math.max(50, (window._pdfZoom || 100) + delta));
   }
   const z = window._pdfZoom / 100;
-  iframe.style.width = (100 / z) + '%';
-  iframe.style.height = (100 / z) + '%';
-  iframe.style.transform = 'scale(' + z + ')';
-  iframe.style.transformOrigin = 'top left';
+  wrap.style.transform = 'scale(' + z + ')';
+  wrap.style.transformOrigin = 'top left';
+  // expand container scroll area
+  wrap.style.width = (100 / z) + '%';
   const label = document.getElementById('zoom-label');
   if (label) label.textContent = window._pdfZoom + '%';
 }
